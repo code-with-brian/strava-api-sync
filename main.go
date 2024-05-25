@@ -5,18 +5,29 @@ import (
 	"os"
 
 	"github.com/code-with-brian/frugal-thinker-sync/strava"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/joho/godotenv"
 )
 
 func init() {
 	err := godotenv.Load()
 	if err != nil {
-		fmt.Println("Error loading .env file:", err)
+		fmt.Println("Error loading.env file:", err)
 		os.Exit(1)
 	}
 }
 
 func main() {
+	db, err := gorm.Open("sqlite3", "activities.db")
+	if err != nil {
+		fmt.Println("Error connecting to the database:", err)
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	db.AutoMigrate(&strava.Activity{})
+
 	credentials := strava.StravaCredentials{
 		ClientID:     os.Getenv("STRAVA_CLIENT_ID"),
 		ClientSecret: os.Getenv("STRAVA_SECRET"),
@@ -36,5 +47,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("Activities JSON:", string(activities))
+	for _, activity := range activities {
+		db.Create(&activity)
+	}
 }
