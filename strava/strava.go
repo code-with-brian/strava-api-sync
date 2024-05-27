@@ -4,16 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
 )
 
 type TokenResponse struct {
-	TokenType    string `json:"token_type"`
-	ExpiresAt    int64  `json:"expires_at"`
-	ExpiresIn    int    `json:"expires_in"`
-	RefreshToken string `json:"refresh_token"`
-	AccessToken  string `json:"access_token"`
+	AccessToken string `json:"access_token"`
 }
 
 func RefreshToken(credentials StravaCredentials) (TokenResponse, error) {
@@ -42,16 +38,31 @@ func RefreshToken(credentials StravaCredentials) (TokenResponse, error) {
 	return tokenResponse, err
 }
 
-func FetchActivities(accessToken string) ([]byte, error) {
-	url := fmt.Sprintf("https://www.strava.com/api/v3/athlete/activities?access_token=%s&per_page=30", accessToken)
-	resp, err := http.Get(url)
+func FetchActivities(accessToken string) ([]Activity, error) {
+	url := "https://www.strava.com/api/v3/athlete/activities"
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close() // Ensure resource cleanup
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code: %s", resp.Status)
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
 	}
 
-	return io.ReadAll(resp.Body) // Read response body efficiently
+	// Debug print to check the raw JSON response
+	fmt.Println("Raw JSON response:", string(body))
+
+	var activities []Activity
+	err = json.Unmarshal(body, &activities)
+	if err != nil {
+		return nil, err
+	}
+
+	return activities, nil
 }

@@ -13,13 +13,13 @@ import (
 func init() {
 	err := godotenv.Load()
 	if err != nil {
-		fmt.Println("Error loading.env file:", err)
+		fmt.Println("Error loading .env file:", err)
 		os.Exit(1)
 	}
 }
 
 func main() {
-	db, err := gorm.Open("sqlite3", "activities.db")
+	db, err := gorm.Open("sqlite3", os.Getenv("SQLITE_PATH"))
 	if err != nil {
 		fmt.Println("Error connecting to the database:", err)
 		os.Exit(1)
@@ -47,7 +47,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Debug print to check the fetched activities
+	fmt.Printf("Fetched %d activities\n", len(activities))
 	for _, activity := range activities {
-		db.Create(&activity)
+		fmt.Printf("Activity: %+v\n", activity)
+		err := db.Create(&activity).Error
+		if err != nil {
+			fmt.Println("Error saving activity to the database:", err)
+		}
 	}
 }
