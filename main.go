@@ -50,10 +50,16 @@ func main() {
 	// Debug print to check the fetched activities
 	fmt.Printf("Fetched %d activities\n", len(activities))
 	for _, activity := range activities {
-		fmt.Printf("Activity: %+v\n", activity)
-		err := db.Create(&activity).Error
-		if err != nil {
-			fmt.Println("Error saving activity to the database:", err)
+		var existingActivity strava.Activity
+		if db.Where("id = ?", activity.ID).First(&existingActivity).RecordNotFound() {
+			err := db.Create(&activity).Error
+			if err != nil {
+				fmt.Println("Error saving activity to the database:", err)
+			} else {
+				fmt.Printf("Activity %d saved successfully\n", activity.ID)
+			}
+		} else {
+			fmt.Printf("Activity %d already exists, skipping\n", activity.ID)
 		}
 	}
 }
